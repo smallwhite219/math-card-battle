@@ -76,23 +76,31 @@ function getDragonStats(stage) {
 function LoginScreen({ onLogin }) {
   const [classId, setClassId] = useState('');
   const [seat, setSeat] = useState('');
+  const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
     if (!classId.trim() || !seat.trim()) { setError('請輸入班級和座號'); return; }
+    if (!pin.trim() || pin.trim().length !== 4 || !/^\d{4}$/.test(pin.trim())) {
+      setError('請輸入4位數字驗證碼'); return;
+    }
     setError('');
     setLoading(true);
     try {
       let savedData = null;
       if (API_URL) {
-        const res = await fetch(`${API_URL}?action=load&class=${encodeURIComponent(classId)}&seat=${encodeURIComponent(seat)}`);
+        const res = await fetch(`${API_URL}?action=load&class=${encodeURIComponent(classId)}&seat=${encodeURIComponent(seat)}&pin=${encodeURIComponent(pin.trim())}`);
         savedData = await res.json();
       }
-      onLogin(classId.trim(), seat.trim(), savedData);
+      if (savedData && savedData.error === 'PIN_MISMATCH') {
+        setError('驗證碼錯誤！請重新輸入');
+        return;
+      }
+      onLogin(classId.trim(), seat.trim(), pin.trim(), savedData);
     } catch (e) {
       console.warn('Load failed:', e);
-      onLogin(classId.trim(), seat.trim(), null);
+      onLogin(classId.trim(), seat.trim(), pin.trim(), null);
     } finally { setLoading(false); }
   };
 
@@ -100,7 +108,7 @@ function LoginScreen({ onLogin }) {
     <div className="login-screen">
       <div className="glass-panel login-box">
         <h1>⚔️ 數學卡牌戰鬥</h1>
-        <div className="subtitle">輸入你的班級和座號開始冒險</div>
+        <div className="subtitle">輸入你的班級、座號和驗證碼開始冒險</div>
         <div className="input-group">
           <label>班級</label>
           <input type="text" placeholder="例如: 301" value={classId}
@@ -110,6 +118,11 @@ function LoginScreen({ onLogin }) {
           <label>座號</label>
           <input type="text" placeholder="例如: 05" value={seat}
             onChange={(e) => setSeat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
+        </div>
+        <div className="input-group">
+          <label>驗證碼 (4位數字)</label>
+          <input type="password" placeholder="自訂4位數字密碼" value={pin} maxLength={4}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
         </div>
         <button className="btn-login" onClick={handleLogin} disabled={loading}>
           {loading ? '載入中...' : '🚀 開始冒險'}
@@ -143,13 +156,13 @@ function ItemSelectScreen({ choices, onSelect, stage }) {
 }
 
 // ===== Save to Google Sheets =====
-async function saveProgress(classId, seat, stage, maxStage, playerHp, buffs) {
+async function saveProgress(classId, seat, pin, stage, maxStage, playerHp, buffs) {
   if (!API_URL) return;
   try {
     await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'save', classId, seat, stage, maxStage, playerHp, buffs }),
+      body: JSON.stringify({ action: 'save', classId, seat, pin, stage, maxStage, playerHp, buffs }),
     });
   } catch (e) { console.warn('Save failed:', e); }
 }
@@ -159,6 +172,7 @@ export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [classId, setClassId] = useState('');
   const [seat, setSeat] = useState('');
+  const [pin, setPin] = useState('');
   const [stage, setStage] = useState(1);
   const [maxStage, setMaxStage] = useState(1);
 
@@ -207,9 +221,10 @@ export default function App() {
     dealHand();
   };
 
-  const handleLogin = (cid, s, savedData) => {
+  const handleLogin = (cid, s, p, savedData) => {
     setClassId(cid);
     setSeat(s);
+    setPin(p);
     setLoggedIn(true);
     const defaultBuffs = { attack: 0, defense: 0, maxhp: 0, healboost: 0 };
     if (savedData && savedData.found) {
@@ -233,6 +248,7 @@ export default function App() {
     setLoggedIn(false);
     setClassId('');
     setSeat('');
+    setPin('');
   };
 
   const dealHand = () => {
@@ -305,7 +321,7 @@ export default function App() {
     const recoveredHp = Math.min(maxHp, playerHp + Math.floor(maxHp * healPct));
 
     initStage(nextStage, recoveredHp, newBuffs);
-    saveProgress(classId, seat, nextStage, newMax, recoveredHp, newBuffs);
+    saveProgress(classId, seat, pin, nextStage, newMax, recoveredHp, newBuffs);
   };
 
   const handleDefeat = () => {
@@ -313,7 +329,7 @@ export default function App() {
     setBuffs(resetBuffs);
     setCollectedItems([]);
     initStage(stage, BASE_PLAYER_HP, resetBuffs);
-    saveProgress(classId, seat, stage, maxStage, BASE_PLAYER_HP, resetBuffs);
+    saveProgress(classId, seat, pin, stage, maxStage, BASE_PLAYER_HP, resetBuffs);
   };
 
   const attackEnemy = () => {
@@ -399,7 +415,7 @@ export default function App() {
         // Show item selection instead of direct victory
         setItemChoices(generateItemChoices());
         setGameState('itemselect');
-        saveProgress(classId, seat, stage, newMax, playerHp, buffs);
+        saveProgress(classId, seat, pin, stage, newMax, playerHp, buffs);
         return;
       }
 
@@ -424,7 +440,7 @@ export default function App() {
       if (newPlayerHp <= 0) {
         addLog('💀 英雄倒下了... 遊戲結束。');
         setGameState('defeat');
-        saveProgress(classId, seat, stage, maxStage, 0, buffs);
+        saveProgress(classId, seat, pin, stage, maxStage, 0, buffs);
       } else {
         dealHand();
         setWeaknessNum(Math.floor(Math.random() * 15) + 5);

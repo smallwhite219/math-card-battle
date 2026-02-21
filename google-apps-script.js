@@ -13,20 +13,7 @@ function ensureHeaders() {
     const sheet = getSheet();
     const firstCell = sheet.getRange('A1').getValue();
     if (firstCell !== '班級') {
-        sheet.getRange('A1:G1').setValues([['班級', '座號', '目前關卡', '最高關卡', '玩家HP', '道具加成', '上次遊玩時間']]);
-    }
-    // Migrate: if only 6 columns, add 7th header
-    const lastCol = sheet.getLastColumn();
-    if (lastCol === 6) {
-        sheet.getRange(1, 6, 1, 1).setValue('道具加成');
-        sheet.getRange(1, 7, 1, 1).setValue('上次遊玩時間');
-        // Shift existing time data from col 6 to col 7
-        const lastRow = sheet.getLastRow();
-        if (lastRow > 1) {
-            const times = sheet.getRange(2, 6, lastRow - 1, 1).getValues();
-            sheet.getRange(2, 7, lastRow - 1, 1).setValues(times);
-            sheet.getRange(2, 6, lastRow - 1, 1).clearContent();
-        }
+        sheet.getRange('A1:H1').setValues([['班級', '座號', '驗證碼', '目前關卡', '最高關卡', '玩家HP', '道具加成', '上次遊玩時間']]);
     }
 }
 
@@ -35,13 +22,12 @@ function findStudentRow(classId, seatNum) {
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
         if (String(data[i][0]) === String(classId) && String(data[i][1]) === String(seatNum)) {
-            return i + 1; // 1-indexed row
+            return i + 1;
         }
     }
     return -1;
 }
 
-// CORS headers for cross-origin requests
 function createJsonResponse(obj) {
     return ContentService.createTextOutput(JSON.stringify(obj))
         .setMimeType(ContentService.MimeType.JSON);
@@ -54,11 +40,14 @@ function doGet(e) {
     if (action === 'load') {
         const classId = e.parameter.class;
         const seat = e.parameter.seat;
+        const pin = e.parameter.pin || '';
         const row = findStudentRow(classId, seat);
 
         if (row === -1) {
+            // New student — will register on first save
             return createJsonResponse({
                 found: false,
+                isNew: true,
                 stage: 1,
                 maxStage: 1,
                 playerHp: 100,
@@ -66,20 +55,31 @@ function doGet(e) {
             });
         }
 
+        // Existing student — verify PIN
         const sheet = getSheet();
-        const data = sheet.getRange(row, 1, 1, 7).getValues()[0];
+        const data = sheet.getRange(row, 1, 1, 8).getValues()[0];
+        const storedPin = String(data[2]);
+
+        if (storedPin && storedPin !== String(pin)) {
+            return createJsonResponse({
+                found: true,
+                error: 'PIN_MISMATCH',
+                message: '驗證碼錯誤！'
+            });
+        }
+
         let buffs = null;
         try {
-            if (data[5]) buffs = JSON.parse(data[5]);
-        } catch (ex) { /* ignore parse errors */ }
+            if (data[6]) buffs = JSON.parse(data[6]);
+        } catch (ex) { /* ignore */ }
 
         return createJsonResponse({
             found: true,
-            stage: data[2],
-            maxStage: data[3],
-            playerHp: data[4],
+            stage: data[3],
+            maxStage: data[4],
+            playerHp: data[5],
             buffs: buffs,
-            lastPlayed: data[6]
+            lastPlayed: data[7]
         });
     }
 
@@ -91,17 +91,17 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
 
     if (body.action === 'save') {
-        const { classId, seat, stage, maxStage, playerHp, buffs } = body;
+        const { classId, seat, pin, stage, maxStage, playerHp, buffs } = body;
         const sheet = getSheet();
         const row = findStudentRow(classId, seat);
         const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
         const buffsJson = buffs ? JSON.stringify(buffs) : '';
-        const rowData = [classId, seat, stage, maxStage, playerHp, buffsJson, now];
+        const rowData = [classId, seat, pin || '', stage, maxStage, playerHp, buffsJson, now];
 
         if (row === -1) {
             sheet.appendRow(rowData);
         } else {
-            sheet.getRange(row, 1, 1, 7).setValues([rowData]);
+            sheet.getRange(row, 1, 1, 8).setValues([rowData]);
         }
 
         return createJsonResponse({ success: true });
