@@ -437,6 +437,11 @@ export default function App() {
     return 'log-entry normal';
   };
 
+  // Set body background image with correct base URL
+  useEffect(() => {
+    document.body.style.backgroundImage = `url('${import.meta.env.BASE_URL}battle_bg_1771654174904.png')`;
+  }, []);
+
   // ===== Render =====
   if (!loggedIn) return <LoginScreen onLogin={handleLogin} />;
 
@@ -475,7 +480,7 @@ export default function App() {
       {/* Header */}
       <header className="header">
         <div className={`glass-panel stats-panel ${shakeTarget === 'hero' ? 'shake' : ''}`}>
-          <img src="/player_hero_1771654142314.png" alt="Hero" className="portrait hero" />
+          <img src={`${import.meta.env.BASE_URL}player_hero_1771654142314.png`} alt="Hero" className="portrait hero" />
           <div className="info">
             <div className="char-name hero-name">英雄 (你)</div>
             <div className="hp-bar-bg">
@@ -495,7 +500,7 @@ export default function App() {
         </div>
 
         <div className={`glass-panel stats-panel dragon ${shakeTarget === 'dragon' ? 'shake' : ''}`}>
-          <img src="/enemy_dragon_1771654157162.png" alt="Dragon" className={`portrait ${dragonInfo.css}`} />
+          <img src={`${import.meta.env.BASE_URL}enemy_dragon_1771654157162.png`} alt="Dragon" className={`portrait ${dragonInfo.css}`} />
           <div className="info">
             <div className="char-name dragon-name">{dragonInfo.emoji} {dragonInfo.name}</div>
             <div className="hp-bar-bg">

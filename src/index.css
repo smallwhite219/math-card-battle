@@ -19,7 +19,7 @@
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--fantasy-900);
-  background-image: url('/battle_bg_1771654174904.png');
+  /* background-image set from JS via BASE_URL */
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
