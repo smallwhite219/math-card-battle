@@ -143,14 +143,13 @@ function ItemSelectScreen({ choices, onSelect, stage }) {
 }
 
 // ===== Save to Google Sheets =====
-async function saveProgress(classId, seat, stage, maxStage, playerHp) {
+async function saveProgress(classId, seat, stage, maxStage, playerHp, buffs) {
   if (!API_URL) return;
   try {
     await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save', classId, seat, stage, maxStage, playerHp }),
-      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'save', classId, seat, stage, maxStage, playerHp, buffs }),
     });
   } catch (e) { console.warn('Save failed:', e); }
 }
@@ -212,17 +211,21 @@ export default function App() {
     setClassId(cid);
     setSeat(s);
     setLoggedIn(true);
-    setBuffs({ attack: 0, defense: 0, maxhp: 0, healboost: 0 });
-    setCollectedItems([]);
+    const defaultBuffs = { attack: 0, defense: 0, maxhp: 0, healboost: 0 };
     if (savedData && savedData.found) {
       const st = savedData.stage || 1;
       const ms = savedData.maxStage || 1;
       const hp = savedData.playerHp || BASE_PLAYER_HP;
+      const savedBuffs = savedData.buffs || defaultBuffs;
       setMaxStage(ms);
-      initStage(st, hp, { attack: 0, defense: 0, maxhp: 0, healboost: 0 });
+      setBuffs(savedBuffs);
+      setCollectedItems([]);
+      initStage(st, hp, savedBuffs);
     } else {
       setMaxStage(1);
-      initStage(1, BASE_PLAYER_HP, { attack: 0, defense: 0, maxhp: 0, healboost: 0 });
+      setBuffs(defaultBuffs);
+      setCollectedItems([]);
+      initStage(1, BASE_PLAYER_HP, defaultBuffs);
     }
   };
 
@@ -302,14 +305,15 @@ export default function App() {
     const recoveredHp = Math.min(maxHp, playerHp + Math.floor(maxHp * healPct));
 
     initStage(nextStage, recoveredHp, newBuffs);
-    saveProgress(classId, seat, nextStage, newMax, recoveredHp);
+    saveProgress(classId, seat, nextStage, newMax, recoveredHp, newBuffs);
   };
 
   const handleDefeat = () => {
-    setBuffs({ attack: 0, defense: 0, maxhp: 0, healboost: 0 });
+    const resetBuffs = { attack: 0, defense: 0, maxhp: 0, healboost: 0 };
+    setBuffs(resetBuffs);
     setCollectedItems([]);
-    initStage(stage, BASE_PLAYER_HP, { attack: 0, defense: 0, maxhp: 0, healboost: 0 });
-    saveProgress(classId, seat, stage, maxStage, BASE_PLAYER_HP);
+    initStage(stage, BASE_PLAYER_HP, resetBuffs);
+    saveProgress(classId, seat, stage, maxStage, BASE_PLAYER_HP, resetBuffs);
   };
 
   const attackEnemy = () => {
@@ -395,7 +399,7 @@ export default function App() {
         // Show item selection instead of direct victory
         setItemChoices(generateItemChoices());
         setGameState('itemselect');
-        saveProgress(classId, seat, stage, newMax, playerHp);
+        saveProgress(classId, seat, stage, newMax, playerHp, buffs);
         return;
       }
 
@@ -420,7 +424,7 @@ export default function App() {
       if (newPlayerHp <= 0) {
         addLog('💀 英雄倒下了... 遊戲結束。');
         setGameState('defeat');
-        saveProgress(classId, seat, stage, maxStage, 0);
+        saveProgress(classId, seat, stage, maxStage, 0, buffs);
       } else {
         dealHand();
         setWeaknessNum(Math.floor(Math.random() * 15) + 5);
