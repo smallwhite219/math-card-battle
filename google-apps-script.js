@@ -4,6 +4,7 @@
 // 存取權限設為「任何人」，取得部署 URL 後貼回前端 App.jsx 的 API_URL。
 
 const SHEET_NAME = '工作表1';
+const HEADERS = ['班級', '座號', '驗證碼', '目前關卡', '最高關卡', '玩家HP', '道具加成', '上次遊玩時間'];
 
 function getSheet() {
     return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -11,17 +12,18 @@ function getSheet() {
 
 function ensureHeaders() {
     const sheet = getSheet();
-    const firstCell = sheet.getRange('A1').getValue();
-    if (firstCell !== '班級') {
-        sheet.getRange('A1:H1').setValues([['班級', '座號', '驗證碼', '目前關卡', '最高關卡', '玩家HP', '道具加成', '上次遊玩時間']]);
-    }
+    // Always overwrite headers to ensure correct 8-column layout
+    sheet.getRange('A1:H1').setValues([HEADERS]);
+    // Format 座號 and 驗證碼 columns as plain text to preserve leading zeros
+    sheet.getRange('B:C').setNumberFormat('@');
 }
 
 function findStudentRow(classId, seatNum) {
     const sheet = getSheet();
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-        if (String(data[i][0]) === String(classId) && String(data[i][1]) === String(seatNum)) {
+        if (String(data[i][0]).trim() === String(classId).trim() &&
+            String(data[i][1]).trim() === String(seatNum).trim()) {
             return i + 1;
         }
     }
@@ -44,7 +46,6 @@ function doGet(e) {
         const row = findStudentRow(classId, seat);
 
         if (row === -1) {
-            // New student — will register on first save
             return createJsonResponse({
                 found: false,
                 isNew: true,
@@ -58,9 +59,9 @@ function doGet(e) {
         // Existing student — verify PIN
         const sheet = getSheet();
         const data = sheet.getRange(row, 1, 1, 8).getValues()[0];
-        const storedPin = String(data[2]);
+        const storedPin = String(data[2]).trim();
 
-        if (storedPin && storedPin !== String(pin)) {
+        if (storedPin && storedPin !== String(pin).trim()) {
             return createJsonResponse({
                 found: true,
                 error: 'PIN_MISMATCH',
@@ -75,9 +76,9 @@ function doGet(e) {
 
         return createJsonResponse({
             found: true,
-            stage: data[3],
-            maxStage: data[4],
-            playerHp: data[5],
+            stage: Number(data[3]) || 1,
+            maxStage: Number(data[4]) || 1,
+            playerHp: Number(data[5]) || 100,
             buffs: buffs,
             lastPlayed: data[7]
         });
@@ -96,10 +97,11 @@ function doPost(e) {
         const row = findStudentRow(classId, seat);
         const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
         const buffsJson = buffs ? JSON.stringify(buffs) : '';
-        const rowData = [classId, seat, pin || '', stage, maxStage, playerHp, buffsJson, now];
+        const rowData = [String(classId), String(seat), String(pin || ''), Number(stage), Number(maxStage), Number(playerHp), buffsJson, now];
 
         if (row === -1) {
-            sheet.appendRow(rowData);
+            const newRow = sheet.getLastRow() + 1;
+            sheet.getRange(newRow, 1, 1, 8).setValues([rowData]);
         } else {
             sheet.getRange(row, 1, 1, 8).setValues([rowData]);
         }
