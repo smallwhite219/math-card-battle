@@ -170,8 +170,8 @@ body {
 
 .character-container {
   position: absolute;
-  bottom: 15%;
-  /* Stand on ground level */
+  bottom: 28%;
+  /* Rest character higher to give deck space */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -379,12 +379,14 @@ body {
 /* Combat Logs */
 .floating-logs {
   position: absolute;
-  top: 80px;
-  right: 24px;
-  width: 320px;
-  max-height: 40vh;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(300px, 40vw, 600px);
+  max-height: 25vh;
   display: flex;
   flex-direction: column;
+  z-index: 30;
 }
 
 .log-header {
