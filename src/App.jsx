@@ -73,6 +73,30 @@ function getDragonStats(stage) {
   };
 }
 
+// ===== Early Mode Rendering =====
+function Representation({ val, isNegative, gameMode }) {
+  if (gameMode !== 'early') return val;
+
+  const stars = [];
+  for (let i = 0; i < 10; i++) {
+    if (i < val) {
+      stars.push(
+        <div key={i} className={`star ${isNegative ? 'cancelled' : ''}`}>
+          ⭐
+        </div>
+      );
+    } else {
+      stars.push(<div key={i} className="star empty" />);
+    }
+  }
+
+  return (
+    <div className="representation-grid">
+      {stars}
+    </div>
+  );
+}
+
 // ===== Login Screen =====
 function LoginScreen({ onLogin }) {
   const [classId, setClassId] = useState('');
@@ -182,6 +206,7 @@ async function saveProgress(apiUrl, classId, seat, pin, stage, maxStage, playerH
 // ===== Main Game =====
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [gameMode, setGameMode] = useState(() => localStorage.getItem('mcb_game_mode') || 'standard');
   const [apiUrl, setApiUrl] = useState('');
   const [classId, setClassId] = useState('');
   const [seat, setSeat] = useState('');
@@ -263,6 +288,11 @@ export default function App() {
     setClassId('');
     setSeat('');
     setPin('');
+  };
+
+  const toggleMode = (mode) => {
+    setGameMode(mode);
+    localStorage.setItem('mcb_game_mode', mode);
   };
 
   const dealHand = () => {
@@ -549,6 +579,10 @@ export default function App() {
 
         {/* Top Info Bar */}
         <div className="top-hud">
+          <div className="mode-toggle glass-panel">
+            <button className={`mode-btn ${gameMode === 'standard' ? 'active' : ''}`} onClick={() => toggleMode('standard')}>一般</button>
+            <button className={`mode-btn ${gameMode === 'early' ? 'active' : ''}`} onClick={() => toggleMode('early')}>初階</button>
+          </div>
           <div className="stage-badge glass-panel">第 {stage} 關</div>
           <div className="student-info glass-panel">
             {classId} 班 {seat} 號 ｜ 最高: 第 {maxStage} 關
@@ -573,9 +607,19 @@ export default function App() {
           <div className="glass-panel equation-panel float">
             <div className="equation-box">
               {equation.length === 0 && <span className="placeholder">點擊下方卡牌組合方程... (目標: {weaknessNum})</span>}
-              {equation.map((c) => (
-                <div key={c.id} className={`card ${c.type === 'num' ? 'number-card' : 'op-card'}`}>{c.val}</div>
-              ))}
+              {equation.map((c, idx) => {
+                const prevCard = idx > 0 ? equation[idx - 1] : null;
+                const isNegative = c.type === 'num' && prevCard?.val === '-';
+                return (
+                  <div key={c.id} className={`card ${c.type === 'num' ? 'number-card' : 'op-card'}`}>
+                    {c.type === 'num' ? (
+                      <Representation val={c.val} isNegative={isNegative} gameMode={gameMode} />
+                    ) : (
+                      c.val
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div className="action-buttons">
               <button className="btn-attack" onClick={attackEnemy} disabled={gameState !== 'playing'}>⚔️ 攻擊</button>
@@ -586,7 +630,9 @@ export default function App() {
           <div className="card-hand-container">
             <div className="card-row">
               {handNumbers.map((c) => (
-                <div key={c.id} onClick={() => handleCardClick(c, 'num')} className="card number-card in-hand">{c.val}</div>
+                <div key={c.id} onClick={() => handleCardClick(c, 'num')} className="card number-card in-hand">
+                  <Representation val={c.val} gameMode={gameMode} />
+                </div>
               ))}
             </div>
             <div className="card-row ops-row">

@@ -159,6 +159,34 @@ body {
   padding: 0;
 }
 
+/* ===== Mode Toggle ===== */
+.mode-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-right: 12px;
+}
+
+.mode-btn {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: var(--fantasy-blue);
+  color: white;
+  box-shadow: 0 2px 8px rgba(58, 90, 159, 0.5);
+}
+
 /* ===== Arena Layer ===== */
 .arena-layer {
   position: absolute;
@@ -588,6 +616,61 @@ body {
   background: linear-gradient(135deg, #a16207, #713f12);
   color: white;
   border-color: #fbbf24;
+}
+
+/* ===== Early Mode Visual Representations ===== */
+.card .representation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  pointer-events: none;
+}
+
+/* Larger grid for preview/hand */
+.card.in-hand .representation-grid {
+  gap: 6px;
+  padding: 10px;
+}
+
+/* Tiny grid for equations */
+.equation-box .representation-grid {
+  gap: 2px;
+  padding: 4px;
+}
+
+.star {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4));
+  transition: all 0.3s;
+}
+
+.star.cancelled {
+  opacity: 0.15;
+  filter: grayscale(1) blur(1px);
+  position: relative;
+}
+
+.star.cancelled::after {
+  content: '✕';
+  position: absolute;
+  color: #ef4444;
+  font-size: 1rem;
+  font-weight: 900;
+  opacity: 0.8 !important;
+}
+
+/* Hand cards adjust font if it's an operator */
+.card.op-card {
+  font-size: 2.2rem;
 }
 
 /* ===== Special Effect Overlay ===== */
