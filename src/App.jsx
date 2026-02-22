@@ -664,13 +664,25 @@ export default function App() {
               {equation.map((c, idx) => {
                 const prevCard = idx > 0 ? equation[idx - 1] : null;
                 const isNegative = c.type === 'num' && prevCard?.val === '-';
+
+                // standard design
+                if (gameMode !== 'early') {
+                  return (
+                    <div key={c.id} className={`card ${c.type === 'num' ? 'number-card' : 'op-card'}`}>
+                      {c.val}
+                    </div>
+                  );
+                }
+
+                // Early Mode: Dual Representation
                 return (
-                  <div key={c.id} className={`card ${c.type === 'num' ? 'number-card' : 'op-card'}`}>
+                  <div key={c.id} className="equation-item-wrapper">
                     {c.type === 'num' ? (
-                      <Representation val={c.val} isNegative={isNegative} gameMode={gameMode} />
+                      <Representation val={c.val} isNegative={isNegative} gameMode={gameMode} variant="grid" />
                     ) : (
-                      c.val
+                      <div className="representation-grid" style={{ visibility: 'hidden' }}>{/* spacing */}</div>
                     )}
+                    <div className="digit-label">{c.val}</div>
                   </div>
                 );
               })}
