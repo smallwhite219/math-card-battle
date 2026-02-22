@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { HeroPortrait, DragonPortrait } from './PixiComponents';
 
 // ⚠️ 部署 Google Apps Script 後，把 URL 貼在這裡
 const API_URL = 'https://script.google.com/macros/s/AKfycbyPUYF9tUjYpRw227BKsVF5RhqsN7w9zHblVtSxeBhDFJS1p9GXxXCM6neXJW195c0w/exec';
@@ -459,7 +460,7 @@ export default function App() {
 
   // Set body background image with correct base URL
   useEffect(() => {
-    document.body.style.backgroundImage = `url('${import.meta.env.BASE_URL}battle_bg_1771654174904.png')`;
+    document.body.style.backgroundImage = `url('${import.meta.env.BASE_URL}pixel_battle_bg.png')`;
   }, []);
 
   // ===== Render =====
@@ -500,7 +501,7 @@ export default function App() {
       {/* Header */}
       <header className="header">
         <div className={`glass-panel stats-panel ${shakeTarget === 'hero' ? 'shake' : ''}`}>
-          <img src={`${import.meta.env.BASE_URL}player_hero_1771654142314.png`} alt="Hero" className="portrait hero" />
+          <HeroPortrait isTakingDamage={shakeTarget === 'hero'} isAttacking={specialEffect !== null} />
           <div className="info">
             <div className="char-name hero-name">英雄 (你)</div>
             <div className="hp-bar-bg">
@@ -520,7 +521,7 @@ export default function App() {
         </div>
 
         <div className={`glass-panel stats-panel dragon ${shakeTarget === 'dragon' ? 'shake' : ''}`}>
-          <img src={`${import.meta.env.BASE_URL}enemy_dragon_1771654157162.png`} alt="Dragon" className={`portrait ${dragonInfo.css}`} />
+          <DragonPortrait isTakingDamage={shakeTarget === 'dragon'} dragonClass={dragonInfo.css} />
           <div className="info">
             <div className="char-name dragon-name">{dragonInfo.emoji} {dragonInfo.name}</div>
             <div className="hp-bar-bg">
