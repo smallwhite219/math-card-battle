@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HeroPortrait, DragonPortrait } from './PixiComponents';
 
-// ⚠️ 部署 Google Apps Script 後，把 URL 貼在這裡
-const API_URL = 'https://script.google.com/macros/s/AKfycbyPUYF9tUjYpRw227BKsVF5RhqsN7w9zHblVtSxeBhDFJS1p9GXxXCM6neXJW195c0w/exec';
+// ⚠️ 部署 Google Apps Script 後，預設 URL 貼在這裡
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyPUYF9tUjYpRw227BKsVF5RhqsN7w9zHblVtSxeBhDFJS1p9GXxXCM6neXJW195c0w/exec';
 
 const BASE_PLAYER_HP = 100;
 
@@ -78,6 +78,7 @@ function LoginScreen({ onLogin }) {
   const [classId, setClassId] = useState('');
   const [seat, setSeat] = useState('');
   const [pin, setPin] = useState('');
+  const [customGasUrl, setCustomGasUrl] = useState(() => localStorage.getItem('mcb_gas_url') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -88,20 +89,24 @@ function LoginScreen({ onLogin }) {
     }
     setError('');
     setLoading(true);
+
+    const finalUrl = customGasUrl.trim() || DEFAULT_API_URL;
+    localStorage.setItem('mcb_gas_url', customGasUrl.trim());
+
     try {
       let savedData = null;
-      if (API_URL) {
-        const res = await fetch(`${API_URL}?action=load&class=${encodeURIComponent(classId)}&seat=${encodeURIComponent(seat)}&pin=${encodeURIComponent(pin.trim())}`);
+      if (finalUrl) {
+        const res = await fetch(`${finalUrl}?action=load&class=${encodeURIComponent(classId)}&seat=${encodeURIComponent(seat)}&pin=${encodeURIComponent(pin.trim())}`);
         savedData = await res.json();
       }
       if (savedData && savedData.error === 'PIN_MISMATCH') {
         setError('驗證碼錯誤！請重新輸入');
         return;
       }
-      onLogin(classId.trim(), seat.trim(), pin.trim(), savedData);
+      onLogin(classId.trim(), seat.trim(), pin.trim(), savedData, finalUrl);
     } catch (e) {
       console.warn('Load failed:', e);
-      onLogin(classId.trim(), seat.trim(), pin.trim(), null);
+      onLogin(classId.trim(), seat.trim(), pin.trim(), null, finalUrl);
     } finally { setLoading(false); }
   };
 
@@ -124,6 +129,12 @@ function LoginScreen({ onLogin }) {
           <label>驗證碼 (4位數字)</label>
           <input type="password" placeholder="自訂4位數字密碼" value={pin} maxLength={4}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
+        </div>
+        <div className="input-group" style={{ marginTop: '24px' }}>
+          <label style={{ color: '#9ca3af', fontSize: '0.75rem' }}>進階: 自訂伺服器 (GAS URL)</label>
+          <input type="text" placeholder="留白則使用預設伺服器" value={customGasUrl}
+            onChange={(e) => setCustomGasUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            style={{ fontSize: '0.8rem', padding: '8px 12px', background: 'rgba(0,0,0,0.2)' }} />
         </div>
         <button className="btn-login" onClick={handleLogin} disabled={loading}>
           {loading ? '載入中...' : '🚀 開始冒險'}
@@ -157,10 +168,10 @@ function ItemSelectScreen({ choices, onSelect, stage }) {
 }
 
 // ===== Save to Google Sheets =====
-async function saveProgress(classId, seat, pin, stage, maxStage, playerHp, buffs) {
-  if (!API_URL) return;
+async function saveProgress(apiUrl, classId, seat, pin, stage, maxStage, playerHp, buffs) {
+  if (!apiUrl) return;
   try {
-    await fetch(API_URL, {
+    await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'save', classId, seat, pin, stage, maxStage, playerHp, buffs }),
@@ -171,6 +182,7 @@ async function saveProgress(classId, seat, pin, stage, maxStage, playerHp, buffs
 // ===== Main Game =====
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [apiUrl, setApiUrl] = useState('');
   const [classId, setClassId] = useState('');
   const [seat, setSeat] = useState('');
   const [pin, setPin] = useState('');
@@ -222,10 +234,11 @@ export default function App() {
     dealHand();
   };
 
-  const handleLogin = (cid, s, p, savedData) => {
+  const handleLogin = (cid, s, p, savedData, loadedApiUrl) => {
     setClassId(cid);
     setSeat(s);
     setPin(p);
+    setApiUrl(loadedApiUrl);
     setLoggedIn(true);
     const defaultBuffs = { attack: 0, defense: 0, maxhp: 0, healboost: 0 };
     if (savedData && savedData.found) {
@@ -322,7 +335,7 @@ export default function App() {
     const recoveredHp = Math.min(maxHp, playerHp + Math.floor(maxHp * healPct));
 
     initStage(nextStage, recoveredHp, newBuffs);
-    saveProgress(classId, seat, pin, nextStage, newMax, recoveredHp, newBuffs);
+    saveProgress(apiUrl, classId, seat, pin, nextStage, newMax, recoveredHp, newBuffs);
   };
 
   const handleDefeat = () => {
@@ -330,7 +343,7 @@ export default function App() {
     setBuffs(resetBuffs);
     setCollectedItems([]);
     initStage(stage, BASE_PLAYER_HP, resetBuffs);
-    saveProgress(classId, seat, pin, stage, maxStage, BASE_PLAYER_HP, resetBuffs);
+    saveProgress(apiUrl, classId, seat, pin, stage, maxStage, BASE_PLAYER_HP, resetBuffs);
   };
 
   const attackEnemy = () => {
@@ -416,7 +429,7 @@ export default function App() {
         // Show item selection instead of direct victory
         setItemChoices(generateItemChoices());
         setGameState('itemselect');
-        saveProgress(classId, seat, pin, stage, newMax, playerHp, buffs);
+        saveProgress(apiUrl, classId, seat, pin, stage, newMax, playerHp, buffs);
         return;
       }
 
@@ -441,7 +454,7 @@ export default function App() {
       if (newPlayerHp <= 0) {
         addLog('💀 英雄倒下了... 遊戲結束。');
         setGameState('defeat');
-        saveProgress(classId, seat, pin, stage, maxStage, 0, buffs);
+        saveProgress(apiUrl, classId, seat, pin, stage, maxStage, 0, buffs);
       } else {
         dealHand();
         setWeaknessNum(Math.floor(Math.random() * 15) + 5);
