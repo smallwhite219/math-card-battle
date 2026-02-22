@@ -469,7 +469,7 @@ export default function App() {
   const currentMaxHp = getMaxHp();
 
   return (
-    <div className="game-container">
+    <div className="game-container full-screen">
       {specialEffect && (
         <div className="effect-overlay">
           <div className={`effect-text effect-${specialEffect.type}`}>{specialEffect.text}</div>
@@ -489,20 +489,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Stage Bar */}
-      <div className="stage-bar">
-        <div className="stage-badge">第 {stage} 關</div>
-        <div className="student-info">
-          {classId} 班 {seat} 號 ｜ 最高: 第 {maxStage} 關
-          <button className="btn-logout" onClick={handleLogout}>登出</button>
-        </div>
-      </div>
-
-      {/* Header */}
-      <header className="header">
-        <div className={`glass-panel stats-panel ${shakeTarget === 'hero' ? 'shake' : ''}`}>
-          <HeroPortrait isTakingDamage={shakeTarget === 'hero'} isAttacking={specialEffect !== null} />
-          <div className="info">
+      {/* ===== Arena Layer (Characters) ===== */}
+      <div className="arena-layer">
+        <div className={`character-container hero-container ${shakeTarget === 'hero' ? 'shake' : ''}`}>
+          <div className="floating-stats">
             <div className="char-name hero-name">英雄 (你)</div>
             <div className="hp-bar-bg">
               <div className="hp-bar-fill" style={{ width: `${(playerHp / currentMaxHp) * 100}%` }} />
@@ -510,7 +500,7 @@ export default function App() {
             <div className="hp-text">{playerHp} / {currentMaxHp} HP</div>
             {/* Buff indicators */}
             {collectedItems.length > 0 && (
-              <div className="tags" style={{ marginTop: 4 }}>
+              <div className="tags center">
                 {buffs.attack > 0 && <span className="tag" style={{ background: 'rgba(239,68,68,0.3)', color: '#fca5a5' }}>⚔️+{Math.round(buffs.attack * 100)}%</span>}
                 {buffs.defense > 0 && <span className="tag" style={{ background: 'rgba(59,130,246,0.3)', color: '#93c5fd' }}>🛡️+{Math.round(buffs.defense * 100)}%</span>}
                 {buffs.maxhp > 0 && <span className="tag" style={{ background: 'rgba(34,197,94,0.3)', color: '#86efac' }}>❤️+{Math.round(buffs.maxhp * 100)}%</span>}
@@ -518,94 +508,83 @@ export default function App() {
               </div>
             )}
           </div>
+          <HeroPortrait isTakingDamage={shakeTarget === 'hero'} isAttacking={specialEffect !== null} />
         </div>
 
-        <div className={`glass-panel stats-panel dragon ${shakeTarget === 'dragon' ? 'shake' : ''}`}>
-          <DragonPortrait isTakingDamage={shakeTarget === 'dragon'} dragonClass={dragonInfo.css} />
-          <div className="info">
+        <div className={`character-container dragon-container ${shakeTarget === 'dragon' ? 'shake' : ''}`}>
+          <div className="floating-stats right">
             <div className="char-name dragon-name">{dragonInfo.emoji} {dragonInfo.name}</div>
             <div className="hp-bar-bg">
               <div className="hp-bar-fill dragon-hp" style={{ width: `${(dragonHp / dragonMaxHp) * 100}%` }} />
             </div>
             <div className="hp-text">{dragonHp} / {dragonMaxHp} HP</div>
-            <div className="tags right">
+            <div className="tags center">
               <span className="tag weakness">弱點: {weaknessNum}</span>
               <span className="tag defense">防禦: {defense}</span>
             </div>
-            <div className="tags right" style={{ marginTop: 4 }}>
+            <div className="tags center" style={{ marginTop: 4 }}>
               {debuffs.burning > 0 && <span className="tag burning">🔥 燃燒({debuffs.burning})</span>}
               {debuffs.frozen > 0 && <span className="tag frozen">❄️ 冰凍({debuffs.frozen})</span>}
             </div>
           </div>
+          <DragonPortrait isTakingDamage={shakeTarget === 'dragon'} dragonClass={dragonInfo.css} />
         </div>
-      </header>
+      </div>
 
-      {/* Main */}
-      <div className="main-area">
-        <div className="play-area">
-          <div className="glass-panel equation-panel">
-            <div className="section-title">目前算式</div>
+      {/* ===== UI Layer (Cards & Logs) ===== */}
+      <div className="ui-layer">
+
+        {/* Top Info Bar */}
+        <div className="top-hud">
+          <div className="stage-badge glass-panel">第 {stage} 關</div>
+          <div className="student-info glass-panel">
+            {classId} 班 {seat} 號 ｜ 最高: 第 {maxStage} 關
+            <button className="btn-logout" onClick={handleLogout}>登出</button>
+          </div>
+        </div>
+
+        {/* Logs on Top Right */}
+        <div className="glass-panel log-panel floating-logs">
+          <div className="log-header">📜 戰鬥日誌</div>
+          <div className="log-body">
+            {logs.map((log, i) => (
+              <div key={i} className={getLogClass(log)}>{log}</div>
+            ))}
+            <div ref={logsEndRef} />
+          </div>
+        </div>
+
+        {/* Bottom HUD: Cards and Equations */}
+        <div className="bottom-hud">
+
+          <div className="glass-panel equation-panel float">
             <div className="equation-box">
-              {equation.length === 0 && <span className="placeholder">點擊下方卡牌組合方程...</span>}
+              {equation.length === 0 && <span className="placeholder">點擊下方卡牌組合方程... (目標: {weaknessNum})</span>}
               {equation.map((c) => (
                 <div key={c.id} className={`card ${c.type === 'num' ? 'number-card' : 'op-card'}`}>{c.val}</div>
               ))}
             </div>
             <div className="action-buttons">
-              <button className="btn-attack" onClick={attackEnemy} disabled={gameState !== 'playing'}>⚔️ 攻擊敵人</button>
-              <button className="btn-clear" onClick={clearEquation}>清除算式</button>
+              <button className="btn-attack" onClick={attackEnemy} disabled={gameState !== 'playing'}>⚔️ 攻擊</button>
+              <button className="btn-clear" onClick={clearEquation}>清除</button>
             </div>
           </div>
 
-          <div className="glass-panel hand-panel">
-            <div className="hand-header">
-              <div className="section-title" style={{ marginBottom: 0 }}>你的手牌</div>
-              <span className="hand-hint">*目標：組出結果為 {weaknessNum} 的算式</span>
-            </div>
+          <div className="card-hand-container">
             <div className="card-row">
               {handNumbers.map((c) => (
-                <div key={c.id} onClick={() => handleCardClick(c, 'num')} className="card number-card">{c.val}</div>
+                <div key={c.id} onClick={() => handleCardClick(c, 'num')} className="card number-card in-hand">{c.val}</div>
               ))}
             </div>
-            <div className="card-row">
+            <div className="card-row ops-row">
               {handOps.map((c) => (
-                <div key={c.id} onClick={() => handleCardClick(c, 'op')} className="card op-card">{c.val}</div>
+                <div key={c.id} onClick={() => handleCardClick(c, 'op')} className="card op-card in-hand">{c.val}</div>
               ))}
             </div>
           </div>
+
         </div>
 
-        <div className="right-column">
-          <div className="glass-panel log-panel">
-            <div className="log-header">📜 戰鬥日誌</div>
-            <div className="log-body">
-              {logs.map((log, i) => (
-                <div key={i} className={getLogClass(log)}>{log}</div>
-              ))}
-              <div ref={logsEndRef} />
-            </div>
-          </div>
-
-          <div className="glass-panel rules-panel">
-            <h3>📖 遊戲說明</h3>
-            <ul>
-              <li>選擇數字卡牌和運算符卡牌來組合算式</li>
-              <li>命中弱點數字觸發特殊效果（依使用數字卡牌數量）：
-                <ul className="sub-list">
-                  <li>1張：致命傷害 (30點)</li>
-                  <li>2張：燃燒 (每回合3點×3回合)</li>
-                  <li>3張：冰凍 (每回合5點+凍結1回合)</li>
-                  <li>4張：雷擊 (致命×2)</li>
-                  <li>5+張：流星 (致命×3)</li>
-                </ul>
-              </li>
-              <li>未命中弱點：結果 - (防禦 × 亂數1~3)</li>
-              <li>攻擊力 ≤ 0 時，惡龍反擊</li>
-              <li>每關通過可選擇道具強化</li>
-              <li>戰敗將重置所有道具加成</li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );

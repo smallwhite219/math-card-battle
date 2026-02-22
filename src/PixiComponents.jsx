@@ -36,11 +36,11 @@ const FloatingSprite = ({ image, isTakingDamage, isAttacking }) => {
     return (
         <Sprite
             image={image}
-            anchor={0.5}
-            x={64 + xOffset}
-            y={64 + yOffset}
-            width={128}
-            height={128}
+            anchor={[0.5, 1]} // Anchor bottom center so they stand on ground
+            x={150 + xOffset}
+            y={280 + yOffset}
+            width={256}
+            height={256}
             tint={tint}
         />
     );
@@ -48,7 +48,7 @@ const FloatingSprite = ({ image, isTakingDamage, isAttacking }) => {
 
 export const HeroPortrait = ({ isTakingDamage, isAttacking }) => {
     return (
-        <Stage width={128} height={128} options={{ backgroundAlpha: 0 }} className="portrait hero" style={{ padding: 0, imageRendering: 'pixelated' }}>
+        <Stage width={300} height={300} options={{ backgroundAlpha: 0 }} className="portrait hero" style={{ padding: 0, imageRendering: 'pixelated' }}>
             <FloatingSprite
                 image={`${import.meta.env.BASE_URL}pixel_hero.png`}
                 isTakingDamage={isTakingDamage}
@@ -93,11 +93,11 @@ const InnerDragonSprite = ({ isTakingDamage, dragonClass }) => {
     return (
         <Sprite
             image={`${import.meta.env.BASE_URL}pixel_dragon.png`}
-            anchor={0.5}
-            x={64 + xOffset}
-            y={64 + yOffset}
-            width={128}
-            height={128}
+            anchor={[0.5, 1]} // Anchor bottom center so they stand on ground
+            x={150 + xOffset}
+            y={280 + yOffset}
+            width={280}
+            height={280}
             tint={tint}
         />
     );
@@ -105,7 +105,7 @@ const InnerDragonSprite = ({ isTakingDamage, dragonClass }) => {
 
 export const DragonPortrait = ({ isTakingDamage, dragonClass }) => {
     return (
-        <Stage width={128} height={128} options={{ backgroundAlpha: 0 }} className={`portrait ${dragonClass}`} style={{ padding: 0, imageRendering: 'pixelated' }}>
+        <Stage width={300} height={300} options={{ backgroundAlpha: 0 }} className={`portrait ${dragonClass}`} style={{ padding: 0, imageRendering: 'pixelated' }}>
             <InnerDragonSprite isTakingDamage={isTakingDamage} dragonClass={dragonClass} />
         </Stage>
     );
