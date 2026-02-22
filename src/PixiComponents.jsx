@@ -58,7 +58,7 @@ export const HeroPortrait = ({ isTakingDamage, isAttacking }) => {
     );
 };
 
-export const DragonPortrait = ({ isTakingDamage, dragonClass }) => {
+const InnerDragonSprite = ({ isTakingDamage, dragonClass }) => {
     // Let dragon class dictate default tint
     let defaultTint = 0xFFFFFF;
     if (dragonClass === 'dragon-fire') defaultTint = 0xFF8844;
@@ -91,16 +91,22 @@ export const DragonPortrait = ({ isTakingDamage, dragonClass }) => {
     });
 
     return (
+        <Sprite
+            image={`${import.meta.env.BASE_URL}pixel_dragon.png`}
+            anchor={0.5}
+            x={64 + xOffset}
+            y={64 + yOffset}
+            width={128}
+            height={128}
+            tint={tint}
+        />
+    );
+};
+
+export const DragonPortrait = ({ isTakingDamage, dragonClass }) => {
+    return (
         <Stage width={128} height={128} options={{ backgroundAlpha: 0 }} className={`portrait ${dragonClass}`} style={{ padding: 0, imageRendering: 'pixelated' }}>
-            <Sprite
-                image={`${import.meta.env.BASE_URL}pixel_dragon.png`}
-                anchor={0.5}
-                x={64 + xOffset}
-                y={64 + yOffset}
-                width={128}
-                height={128}
-                tint={tint}
-            />
+            <InnerDragonSprite isTakingDamage={isTakingDamage} dragonClass={dragonClass} />
         </Stage>
     );
 };
