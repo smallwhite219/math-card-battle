@@ -74,24 +74,25 @@ function getDragonStats(stage) {
 }
 
 // ===== Early Mode Rendering =====
-function Representation({ val, isNegative, gameMode }) {
+function Representation({ val, isNegative, gameMode, variant = 'grid' }) {
   if (gameMode !== 'early') return val;
 
   const stars = [];
-  for (let i = 0; i < 10; i++) {
+  const limit = variant === 'grid' ? 10 : val;
+  for (let i = 0; i < limit; i++) {
     if (i < val) {
       stars.push(
         <div key={i} className={`star ${isNegative ? 'cancelled' : ''}`}>
           ⭐
         </div>
       );
-    } else {
+    } else if (variant === 'grid') {
       stars.push(<div key={i} className="star empty" />);
     }
   }
 
   return (
-    <div className="representation-grid">
+    <div className={variant === 'grid' ? 'representation-grid' : 'hud-stars'}>
       {stars}
     </div>
   );
@@ -562,7 +563,11 @@ export default function App() {
             </div>
             <div className="hp-text">{dragonHp} / {dragonMaxHp} HP</div>
             <div className="tags center">
-              <span className="tag weakness">弱點: {weaknessNum}</span>
+              <span className="tag weakness">
+                弱點: {gameMode === 'early' ? (
+                  <Representation val={weaknessNum} gameMode={gameMode} variant="hud" />
+                ) : weaknessNum}
+              </span>
               <span className="tag defense">防禦: {defense}</span>
             </div>
             <div className="tags center" style={{ marginTop: 4 }}>
