@@ -192,6 +192,51 @@ function ItemSelectScreen({ choices, onSelect, stage }) {
   );
 }
 
+// ===== Help Modal =====
+function HelpModal({ onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="glass-panel rules-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2>📜 冒險指南</h2>
+
+        <div className="rules-section">
+          <h3>🎮 核心玩法</h3>
+          <ul>
+            <li>利用下方的「數字卡」與「符號卡」組合出算式。</li>
+            <li>若算式結果等於惡龍的「弱點數字」，將發動強大的特效攻擊！</li>
+            <li>算式越長（使用的數字越多），發動的特效威力越大。</li>
+          </ul>
+        </div>
+
+        <div className="rules-section">
+          <h3>✨ 弱點特效 (當結果 = 弱點)</h3>
+          <ul>
+            <li>使用 1 顆數字：致命一擊 (高傷害)</li>
+            <li>使用 2 顆數字：🔥 燃燒 (持續 3 回合扣血)</li>
+            <li>使用 3 顆數字：❄️ 冰凍 (對手停止行動 1 回合)</li>
+            <li>使用 4 顆數字：⚡ 雷擊 (極高傷害)</li>
+            <li>使用 5 顆以上：☄️ 流星 (毀滅性傷害)</li>
+          </ul>
+        </div>
+
+        <div className="rules-section">
+          <h3>🛡️ 戰鬥提示</h3>
+          <ul>
+            <li>若計算結果不等於弱點，則進行一般攻擊（扣除防禦力後計算傷害）。</li>
+            <li>過關後可以挑選一件「道具」來強化英雄。</li>
+            <li>血量扣完則戰敗，所有道具加成將會重置。</li>
+          </ul>
+        </div>
+
+        <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', marginTop: '16px' }}>
+          點擊任意處或右上角關閉
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ===== Save to Google Sheets =====
 async function saveProgress(apiUrl, classId, seat, pin, stage, maxStage, playerHp, buffs) {
   if (!apiUrl) return;
@@ -214,6 +259,7 @@ export default function App() {
   const [pin, setPin] = useState('');
   const [stage, setStage] = useState(1);
   const [maxStage, setMaxStage] = useState(1);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Roguelike buffs (accumulated percentages)
   const [buffs, setBuffs] = useState({ attack: 0, defense: 0, maxhp: 0, healboost: 0 });
@@ -592,8 +638,11 @@ export default function App() {
           <div className="student-info glass-panel">
             {classId} 班 {seat} 號 ｜ 最高: 第 {maxStage} 關
             <button className="btn-logout" onClick={handleLogout}>登出</button>
+            <div className="btn-help" onClick={() => setShowHelp(true)}>？</div>
           </div>
         </div>
+
+        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
         {/* Logs on Top Right */}
         <div className="glass-panel log-panel floating-logs">
