@@ -432,7 +432,8 @@ body {
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: clamp(300px, 40vw, 600px);
+  width: clamp(240px, 30vw, 400px);
+  /* Narrower width to avoid character overlapping */
   max-height: 25vh;
   display: flex;
   flex-direction: column;
